@@ -4,6 +4,7 @@ from rest_framework import generics, permissions, status, views
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from .serializers import UserRegistrationSerializer, UserSerializer
+from .models import CustomUser, UserFollow
 
 # Create your views here.
 User = get_user_model()
@@ -41,3 +42,34 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user
+    
+CustomUser = get_user_model()
+
+class FollowUserView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # This method explicitly states CustomUser.objects.all()
+        return CustomUser.objects.all()
+    
+    def post(self, request, user_id=None):
+        user_to_follow = self.get_queryset().get(id=user_id)
+        if user_to_follow == request.user:
+            return Response({'error': "You cannot follow yourself."}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.following.add(user_to_follow)
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class UnfollowUserView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        # This method explicitly states CustomUser.objects.all()
+        return CustomUser.objects.all()
+    
+    def post(self, request, user_id=None):
+        user_to_unfollow = self.get_queryset().get(id=user_id)
+        if user_to_unfollow == request.user:
+            return Response({'error': "You cannot unfollow yourself."}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.following.remove(user_to_unfollow)
+        return Response(status=status.HTTP_204_NO_CONTENT)
